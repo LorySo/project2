@@ -90,16 +90,8 @@ def belief_to_cnf(query):
         return f"{belief_to_cnf(left)}A{belief_to_cnf(right)}"
 
     # disjunction
-    elif main_op == 'U':
-        left_cnf = belief_to_cnf(left)
-        right_cnf = belief_to_cnf(right)
 
-        result = []
-        for c1 in left_cnf:
-            for c2 in right_cnf:
-                result.append(c1.union(c2))
-        return result
-
+    # negation
     elif query.startswith('-(') and query.endswith(')'):
         return belief_to_cnf(negate(query[1:]))
 
