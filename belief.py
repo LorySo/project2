@@ -89,16 +89,25 @@ def belief_to_cnf(query):
     elif main_op == 'A':
         return f"{belief_to_cnf(left)}A{belief_to_cnf(right)}"
 
-    # disjunction
+    # disjunction (?)
 
-    # negation
-    elif query.startswith('-(') and query.endswith(')'):
-        return belief_to_cnf(negate(query[1:]))
+    # De Morgan's Laws
+    elif query.startswith('-(') and query.endswith(')') and main_op == 'U':
+        return f"{belief_to_cnf(negate(left))}A{belief_to_cnf(negate(right))}"
+    
+    
+    elif query.startswith('-(') and query.endswith(')') and main_op == 'A':
+        return f"{belief_to_cnf(negate(left))}U{belief_to_cnf(negate(right))}"
+    
+    # distributive laws (have to add the same with left)
+    main_pos_right, main_op_right = find_main_connective(right)
 
-    if query.startswith('(') and query.endswith(')'):
-        return belief_to_cnf(query[1:-1])
+    leftr = right[:main_pos_right]
+    rightr = right[main_pos_right+1:]
+    if main_op == 'U' and main_op_right == 'A' :
+        return f"{belief_to_cnf(left)}U{belief_to_cnf(right))A()}"
 
-    return [set([query])]
+    return [query]
 
 
 def check_entailmt(belief_set,query):
