@@ -5,6 +5,9 @@ from itertools import combinations
 class BeliefBase:
     """Representation of the belief base"""
     belief_base = set()
+    low_prio = set()
+    mid_prio = set()
+    high_prio = set()
 
     def __init__(self):
         # Test 1
@@ -25,9 +28,25 @@ class BeliefBase:
 
     def clear(self):
         self.belief_base.clear()
+        self.low_prio.clear()
+        self.mid_prio.clear()
+        self.high_prio.clear()
 
     def add(self, input):
         self.belief_base.add(input)
+
+    def add_with_priority(self, belief, priority='low'):
+        """Add a belief with specified priority"""
+        if priority == 'low':
+            self.low_prio.add(belief)
+        elif priority == 'mid':
+            self.mid_prio.add(belief)
+        elif priority == 'high':
+            self.high_prio.add(belief)
+        else:
+            raise ValueError("Priority must be 'low', 'mid', or 'high'")
+        self.belief_base = self.concatenate_priorities()
+
 
     def kb_to_cnf(self, kb):
         """Converts all clauses in a knowledge base to CNF format."""
@@ -75,7 +94,6 @@ class BeliefBase:
         
         return resolvents
 
-    
     def resolution(self, query):
         """
         Returns True if KB entails query, False otherwise.
@@ -112,3 +130,114 @@ class BeliefBase:
             if not new_clauses:
                 return False
             kb.extend(new_clauses)
+
+    def concatenate_priorities(self):
+        return self.low_prio | self.mid_prio | self.high_prio
+
+    def all_subsets(set):
+        return [set(c) for r in range(1, len(set)+1) for c in combinations(set, r)]
+
+    # TODO: Contraction: B ÷ ϕ; ϕ is removed from B giving a new belief set B'
+    def contraction(self, phi):
+        """
+        Contract the belief base by phi, using priority order: low, mid, high.
+        """
+        print(self.belief_base)
+        # First check if phi is even entailed by the belief base
+        if not self.resolution(phi):
+            print(f"{phi} is not entailed by anything in the Belief Base, no contraction needed.")
+            return
+        
+        # Save original state
+        original_state = {
+            'low': set(self.low_prio),
+            'mid': set(self.mid_prio),
+            'high': set(self.high_prio)
+        }
+
+        # Try removing from low-priority beliefs only
+        if self._try_remove_and_check(phi, ['low']):
+            return True
+
+        # Try removing from low + mid (still avoiding high-priority)
+        if self._try_remove_and_check(phi, ['low', 'mid']):
+            return True
+
+        # Only remove high-priority if absolutely necessary
+        if self._try_remove_and_check(phi, ['low', 'mid', 'high']):
+            return True
+
+        print("Contraction failed - cannot remove all beliefs.")
+        self._restore_state(original_state)
+        return False
+
+    def _try_remove_and_check(self, phi, priorities):
+        """
+        Try removing beliefs from specified priorities and check 
+        if phi is no longer entailed.
+        """
+        beliefs = []
+        for p in priorities:
+            beliefs.extend(getattr(self, f"{p}_prio"))
+
+        for k in range(1, len(beliefs) + 1):
+            for to_remove in combinations(beliefs, k):
+                # Temporarily remove beliefs
+                temp_sets = self._create_temp_sets_without_beliefs(to_remove)
+                self._update_belief_base(temp_sets)
+
+                print("tried to remove: ", to_remove, " in the priorities: ", priorities)
+                print("belief base", self.belief_base)
+
+                print(f"Resolution with {phi}: {self.resolution(phi)}")
+                # Check if contraction succeeded
+                if not self.resolution(phi):
+                    print(f"Contracted by removing: {to_remove}")
+                    return True
+
+                # Restore if failed
+                self._restore_state(temp_sets)
+
+        return False
+
+    def _create_temp_sets_without_beliefs(self, to_remove):
+        """
+        Create temporary copies of belief sets with specified beliefs removed.
+        """
+        temp_sets = {
+            'low': set(self.low_prio),
+            'mid': set(self.mid_prio),
+            'high': set(self.high_prio)
+        }
+        for belief in to_remove:
+            for p in ['low', 'mid', 'high']:
+                if belief in temp_sets[p]:
+                    temp_sets[p].remove(belief)
+                    break
+        return temp_sets
+
+    def _update_belief_base(self, temp_sets):
+        """
+        Update the actual belief sets with temporary sets.
+        """
+        self.low_prio = temp_sets['low']
+        self.mid_prio = temp_sets['mid']
+        self.high_prio = temp_sets['high']
+        self.belief_base = self.concatenate_priorities()
+
+    def _restore_state(self, original_state):
+        """
+        Restore the original state of the belief base.
+        """
+        self.low_prio = original_state['low']
+        self.mid_prio = original_state['mid']
+        self.high_prio = original_state['high']
+        self.belief_base = self.concatenate_priorities()
+
+    # TODO: Expansion: B + ϕ; ϕ is added to B giving a new belief set B'
+    # def expansion
+
+    # TODO: Revision: B ∗ ϕ; ϕ is added and other things are removed, 
+    # so that the resulting new belief set B'is consistent.
+    # Levi indentity: B ∗ ϕ := (B ÷ ¬ϕ) + ϕ
+    # def revision
