@@ -238,11 +238,36 @@ class BeliefBase:
         self.high_prio = self.high_prio & new_beliefs
 
 
+
+
+
     # TODO: Expansion: B + ϕ; ϕ is added to B giving a new belief set B'
-    def expansion(self, belief):
-        self.add_with_priority(belief,"low")
+    # def expansion
+    def expansion(self, phi):
+        """
+        Expand the belief base by adding phi.
+        No consistency check or priority is used.
+        """
+        self.belief_base.add(phi)
+        print(f"Expanded belief base with: {phi}")
+    #Clem: I don't know if it has to be more complex?
+
 
     # TODO: Revision: B ∗ ϕ; ϕ is added and other things are removed, 
     # so that the resulting new belief set B'is consistent.
     # Levi indentity: B ∗ ϕ := (B ÷ ¬ϕ) + ϕ
     # def revision
+    def revision(self, phi):
+        """
+        Revises the belief base by phi using Levi Identity:
+        B * phi := (B ÷ ¬phi) + phi
+        """
+        print(f"\n--- Revision with: {phi} ---")
+    
+        # Step 1: Contract the belief base by ¬phi
+        neg_phi = self.negate_literal(sympify(phi))
+        print(f"Contracting by: {neg_phi}")
+        self.contraction(neg_phi)
+
+        # Step 2: Expand with phi
+        self.expansion(phi)
