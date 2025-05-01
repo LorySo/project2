@@ -24,7 +24,6 @@ class BeliefBase:
         #self.belief_base.add("~(p|q)")
         #self.belief_base.add(self.negate_literal("q"))
         #self.belief_base.add(self.negate_literal("~p"))
-        self.resolution("p")
 
     def clear(self):
         self.belief_base.clear()
@@ -47,6 +46,8 @@ class BeliefBase:
             raise ValueError("Priority must be 'low', 'mid', or 'high'")
         self.belief_base = self.concatenate_priorities()
 
+    def get_belief_base(self):
+        return self.belief_base
 
     def kb_to_cnf(self, kb):
         """Converts all clauses in a knowledge base to CNF format."""
@@ -94,12 +95,12 @@ class BeliefBase:
         
         return resolvents
 
-    def resolution(self, query):
+    def resolution(self, beliefs, query):
         """
         Returns True if KB entails query, False otherwise.
         """
         # Convert KB to CNF and flatten
-        kb = self.kb_to_cnf(self.belief_base)
+        kb = self.kb_to_cnf(beliefs)
         kb_flat = set()
         
         for clause in kb:
@@ -137,14 +138,19 @@ class BeliefBase:
     def all_subsets(set):
         return [set(c) for r in range(1, len(set)+1) for c in combinations(set, r)]
 
-    # TODO: Contraction: B ÷ ϕ; ϕ is removed from B giving a new belief set B'
+    # TODO: add remainder sets and partial meet contraction
     def contraction(self, phi):
         """
+        Contraction: B ÷ ϕ; ϕ is removed from B giving a new belief set B'.
         Contract the belief base by phi, using priority order: low, mid, high.
+        Partial meet contraction
+            1. Generate remainder sets
+            2. Apply selection function on the remainders
+            3. Intersect selected remainders to get contracted base
         """
         print(self.belief_base)
         # First check if phi is even entailed by the belief base
-        if not self.resolution(phi):
+        if not self.resolution(self.belief_base, phi):
             print(f"{phi} is not entailed by anything in the Belief Base, no contraction needed.")
             return
         
@@ -155,87 +161,86 @@ class BeliefBase:
             'high': set(self.high_prio)
         }
 
-        # Try removing from low-priority beliefs only
-        if self._try_remove_and_check(phi, ['low']):
-            return True
+        # 1. Generate remainder sets
+        remainder_sets = self._compute_remainder_sets(phi)
+        if not remainder_sets:
+            print("Contraction impossible.")
+            return
 
-        # Try removing from low + mid (still avoiding high-priority)
-        if self._try_remove_and_check(phi, ['low', 'mid']):
-            return True
+        # 2. Apply selection function on the remainders
+        selected_remainders = self._selection_function(remainder_sets)
 
-        # Only remove high-priority if absolutely necessary
-        if self._try_remove_and_check(phi, ['low', 'mid', 'high']):
-            return True
+        # 3. Intersect selected remainders to get contracted base
+        new_belief_base = set.intersection(*selected_remainders)
+        self._update_belief_base(new_belief_base)
+        print("Contracted the belief base.")
+        print("The new belief base: ", self.belief_base)
 
-        print("Contraction failed - cannot remove all beliefs.")
-        self._restore_state(original_state)
-        return False
-
-    def _try_remove_and_check(self, phi, priorities):
+    def _compute_remainder_sets(self, phi):
         """
-        Try removing beliefs from specified priorities and check 
-        if phi is no longer entailed.
+        Compute all remainder sets of the belief base.
+        A⊥ϕ: set of inclusion-maximal subsets of A that do not imply ϕ
         """
-        beliefs = []
-        for p in priorities:
-            beliefs.extend(getattr(self, f"{p}_prio"))
+        remainder_sets = []
+        beliefs = list(self.belief_base)
 
-        for k in range(1, len(beliefs) + 1):
-            for to_remove in combinations(beliefs, k):
-                # Temporarily remove beliefs
-                temp_sets = self._create_temp_sets_without_beliefs(to_remove)
-                self._update_belief_base(temp_sets)
+        for r in range(len(beliefs), 0, -1):
+            for subset in combinations(beliefs, r):
+                subset = set(subset)
+                if not self.resolution(subset, phi):
+                    # Check if this subset is maximal
+                    to_remove = []
 
-                print("tried to remove: ", to_remove, " in the priorities: ", priorities)
-                print("belief base", self.belief_base)
+                    for existing in remainder_sets:
+                        if subset.issubset(existing):
+                            to_remove.append(existing)
+                    for remove in to_remove:
+                        remainder_sets.remove(remove)
 
-                print(f"Resolution with {phi}: {self.resolution(phi)}")
-                # Check if contraction succeeded
-                if not self.resolution(phi):
-                    print(f"Contracted by removing: {to_remove}")
-                    return True
+                    remainder_sets.append(subset)
+        return remainder_sets
 
-                # Restore if failed
-                self._restore_state(temp_sets)
 
-        return False
-
-    def _create_temp_sets_without_beliefs(self, to_remove):
+    def _selection_function(self, remainder_sets):
         """
-        Create temporary copies of belief sets with specified beliefs removed.
+        Select remainders based on priority (high-priority beliefs preferred).
         """
-        temp_sets = {
-            'low': set(self.low_prio),
-            'mid': set(self.mid_prio),
-            'high': set(self.high_prio)
-        }
-        for belief in to_remove:
-            for p in ['low', 'mid', 'high']:
-                if belief in temp_sets[p]:
-                    temp_sets[p].remove(belief)
-                    break
-        return temp_sets
+        if not remainder_sets:
+            return []
 
-    def _update_belief_base(self, temp_sets):
+        scored_remainders = []
+        for remainder in remainder_sets:
+            # weighted priority point low > mid > high
+            prio_point = (
+                10 * len(remainder & self.low_prio) + 
+                5 * len(remainder & self.mid_prio) + 
+                1 * len(remainder & self.high_prio)
+            )
+
+            # normalize by length
+            score = prio_point / len(remainder) if remainder else 0
+            scored_remainders.append((score, remainder))
+                
+        if not any(score for score, _ in scored_remainders):
+            return remainder_sets
+
+        # select the ones with the max score
+        max_score = max(score for score, _ in scored_remainders)
+        return [r for score, r in scored_remainders if score == max_score]
+
+    def _update_belief_base(self, new_beliefs):
         """
         Update the actual belief sets with temporary sets.
         """
-        self.low_prio = temp_sets['low']
-        self.mid_prio = temp_sets['mid']
-        self.high_prio = temp_sets['high']
-        self.belief_base = self.concatenate_priorities()
+        self.belief_base = new_beliefs
+        self.low_prio = self.low_prio & new_beliefs
+        self.mid_prio = self.mid_prio & new_beliefs
+        self.high_prio = self.high_prio & new_beliefs
 
-    def _restore_state(self, original_state):
-        """
-        Restore the original state of the belief base.
-        """
-        self.low_prio = original_state['low']
-        self.mid_prio = original_state['mid']
-        self.high_prio = original_state['high']
-        self.belief_base = self.concatenate_priorities()
 
     # TODO: Expansion: B + ϕ; ϕ is added to B giving a new belief set B'
-    # def expansion
+    def expansion(self, belief):
+        self.add_with_priority(belief,"low")
 
     # TODO: Revision: B ∗ ϕ; ϕ is added and other things are removed, 
     # so that the resulting new belief set B'is consistent.
