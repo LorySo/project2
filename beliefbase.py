@@ -4,37 +4,35 @@ from itertools import combinations
 
 class BeliefBase:
     """Representation of the belief base"""
-    belief_base = set()
+    def __init__(self, initial_beliefs=None):
+        """
+        Initialize the belief base with optional initial beliefs.
+        
+        Args:
+            initial_beliefs (list): A list of beliefs, where each belief can be:
+                - A string/sympify-compatible formula (e.g., "p | q"), assigned default priority 'low'.
+                - A tuple (belief, priority), where priority is 'low', 'mid', or 'high'.
+        """
+        self.belief_base = set()
+        self.low_prio = set()
+        self.mid_prio = set()
+        self.high_prio = set()
 
-    # Different sets for priorities
-    low_prio = set()
-    mid_prio = set()
-    high_prio = set()
-
-    def __init__(self):
-        # Test 1
-        #self.belief_base.add("p | q")
-        #self.belief_base.add("~p | r")
-        #self.belief_base.add("~q | r")
-
-        # Test 2
-        self.belief_base.add("p >> (q & r)")
-
-        #self.belief_base.add("q")
-        #self.belief_base.add(sympify("p"))
-        #self.belief_base.add("p >> (q & w) >> p")
-        #self.belief_base.add("~(p|q)")
-        #self.belief_base.add(self.negate_literal("q"))
-        #self.belief_base.add(self.negate_literal("~p"))
+        if initial_beliefs:
+            for belief in initial_beliefs:
+                if isinstance(belief, tuple):
+                    # Case: (belief, priority) provided
+                    belief_formula, priority = belief
+                    self.add_with_priority(belief_formula, priority)
+                else:
+                    # Case: Only belief provided (default to 'low' priority)
+                    self.add_with_priority(belief, 'low')
 
     def clear(self):
         self.belief_base.clear()
         self.low_prio.clear()
         self.mid_prio.clear()
         self.high_prio.clear()
-
-    def add(self, input):
-        self.belief_base.add(input)
 
     def add_with_priority(self, belief, priority='low'):
         """Add a belief with specified priority"""
@@ -45,7 +43,7 @@ class BeliefBase:
         elif priority == 'high':
             self.high_prio.add(belief)
         else:
-            raise ValueError("Priority must be 'low', 'mid', or 'high'")
+            self.low_prio.add(belief)
         self.belief_base = self.concatenate_priorities()
 
     def get_belief_base(self):
@@ -137,7 +135,6 @@ class BeliefBase:
     def concatenate_priorities(self):
         return self.low_prio | self.mid_prio | self.high_prio
 
-    # TODO: DONE
     def contraction(self, phi):
         """
         Contraction: B ÷ ϕ; ϕ is removed from B giving a new belief set B'.
@@ -168,7 +165,6 @@ class BeliefBase:
         print("Contracted the belief base.")
         print("The new belief base: ", self.belief_base)
 
-    # TODO: change remainder sets to remainder set everywhere
     def _compute_remainder_set(self, phi):
         """
         Compute the remainder set of the belief base.
@@ -234,12 +230,12 @@ class BeliefBase:
 
 
     # TODO: Expansion: B + ϕ; ϕ is added to B giving a new belief set B'
-    def expansion(self, phi):
+    def expansion(self, phi, priority='high'):
         """
         Expand the belief base by adding phi.
-        No consistency check or priority is used.
+        priority is an optional parameter, use high as default, to prioritize new information
         """
-        self.belief_base.add(phi)
+        self.add_with_priority(phi, priority)
         print(f"Expanded belief base with: {phi}")
     #Clem: I don't know if it has to be more complex?
 
@@ -248,17 +244,18 @@ class BeliefBase:
     # so that the resulting new belief set B'is consistent.
     # Levi indentity: B ∗ ϕ := (B ÷ ¬ϕ) + ϕ
     # def revision
-    def revision(self, phi):
+    def revision(self, phi, priority='high'):
         """
         Revises the belief base by phi using Levi Identity:
         B * phi := (B ÷ ¬phi) + phi
+        priority is an optional parameter, use high as default, to prioritize new information
         """
         print(f"\n--- Revision with: {phi} ---")
     
         # Step 1: Contract the belief base by ¬phi
-        neg_phi = self.negate_literal(sympify(phi))
+        neg_phi = to_cnf(f"~({phi})", simplify=True)
         print(f"Contracting by: {neg_phi}")
         self.contraction(neg_phi)
 
         # Step 2: Expand with phi
-        self.expansion(phi)
+        self.expansion(phi, priority)

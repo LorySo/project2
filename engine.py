@@ -1,4 +1,5 @@
 from beliefbase import BeliefBase
+from AGMpostulates import TestAGMPostulates
 
 def main():
     belief_base = BeliefBase()
@@ -60,7 +61,9 @@ def main():
             #test_contraction_slides10_1(belief_base)
             #test_contraction_slides10_2(belief_base)
 
-            run_all_contraction_tests(belief_base)
+            #run_all_contraction_tests(belief_base)\
+            postulates = TestAGMPostulates()
+            postulates.run_all_postulate_test()
 
 
         else:
