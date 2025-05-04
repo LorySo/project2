@@ -144,10 +144,9 @@ class BeliefBase:
             2. Apply selection function on the remainder
             3. Intersect selected sets from remainder to get contracted base
         """
-        print(self.belief_base)
         # First check if phi is even entailed by the belief base
         if not self.resolution(self.belief_base, phi):
-            print(f"{phi} is not entailed by anything in the Belief Base, no contraction needed.")
+            #print(f"{phi} is not entailed by anything in the Belief Base, no contraction needed.")
             return
 
         # 1. Generate remainder set
@@ -162,8 +161,8 @@ class BeliefBase:
         # 3. Intersect selected remainder to get contracted base
         new_belief_base = set.intersection(*selected_remainder)
         self._update_belief_base(new_belief_base)
-        print("Contracted the belief base.")
-        print("The new belief base: ", self.belief_base)
+        #print("Contracted the belief base.")
+        #print("The new belief base: ", self.belief_base)
 
     def _compute_remainder_set(self, phi):
         """
@@ -227,16 +226,13 @@ class BeliefBase:
         self.mid_prio = self.mid_prio & new_beliefs
         self.high_prio = self.high_prio & new_beliefs
 
-
-
-    # TODO: Expansion: B + ϕ; ϕ is added to B giving a new belief set B'
     def expansion(self, phi, priority='high'):
         """
         Expand the belief base by adding phi.
         priority is an optional parameter, use high as default, to prioritize new information
         """
         self.add_with_priority(phi, priority)
-        print(f"Expanded belief base with: {phi}")
+        #print(f"Expanded belief base with: {phi}")
     #Clem: I don't know if it has to be more complex?
 
 
@@ -250,11 +246,11 @@ class BeliefBase:
         B * phi := (B ÷ ¬phi) + phi
         priority is an optional parameter, use high as default, to prioritize new information
         """
-        print(f"\n--- Revision with: {phi} ---")
+        #print(f"\n--- Revision with: {phi} ---")
     
         # Step 1: Contract the belief base by ¬phi
         neg_phi = to_cnf(f"~({phi})", simplify=True)
-        print(f"Contracting by: {neg_phi}")
+        #print(f"Contracting by: {neg_phi}")
         self.contraction(neg_phi)
 
         # Step 2: Expand with phi

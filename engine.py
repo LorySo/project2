@@ -13,7 +13,7 @@ def main():
         print("2. Check logical entailment")
         print("3. Show current belief base")
         print("4. Clear current belief base")
-        print("5. Back to the original belief base")
+        print("5. Running all AGM postulates tests")
         print("6. Quit")
 
         choice = input("Enter your choice (1/2/3): ").strip()
@@ -44,13 +44,6 @@ def main():
             belief_base.clear()
 
         elif choice == '5':
-            print("Not implemented.")
-
-        elif choice == '6':
-            print("Exiting. Goodbye!")
-            break
-
-        elif choice == '7':
             # Test 1
             #print(belief_base.resolution("r")) #should be true
             #print(belief_base.resolution("~r")) #should be false
@@ -65,6 +58,9 @@ def main():
             postulates = TestAGMPostulates()
             postulates.run_all_postulate_test()
 
+        elif choice == '6':
+            print("Exiting. Goodbye!")
+            break
 
         else:
             print("Invalid choice. Please try again.")
