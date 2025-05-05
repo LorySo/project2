@@ -80,7 +80,7 @@ class TestAGMPostulates:
         assert self.logically_equivalent(base1, base2), \
             f"Extensionality violated for contraction: B ÷ {phi} ≠ B ÷ {psi}"
         
-        print("Passed: Extensionality Postulate (contraction)")
+        print("Passed: Extensionality AGM postulate for contraction test")
 
 
     # --- Contraction Postulates ---
