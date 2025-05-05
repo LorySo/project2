@@ -34,7 +34,7 @@ class BeliefBase:
         self.mid_prio.clear()
         self.high_prio.clear()
 
-    def add_with_priority(self, belief, priority='low'):
+    def add_with_priority(self, belief, priority='high'):
         """Add a belief with specified priority"""
         if priority == 'low':
             self.low_prio.add(belief)
