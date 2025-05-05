@@ -70,7 +70,6 @@ class TestAGMPostulates:
         base1 = BeliefBase(initial)
         base2 = BeliefBase(initial)
 
-        # Logically equivalent formulas (ϕ ↔ ψ is a tautology)
         phi, psi = "q | r", "r | q" 
 
         base1.contraction(phi)
@@ -136,7 +135,7 @@ class TestAGMPostulates:
         
         # Perform expansion (B + ϕ)
         expanded = BeliefBase(initial_beliefs)
-        expanded.expansion(phi)  # Adds q and closes under logical consequence
+        expanded.expansion(phi) 
         
         # Perform revision (B * ϕ)
         base.revision(phi)
@@ -154,19 +153,17 @@ class TestAGMPostulates:
         """
         # Case 1: ϕ is consistent with B
         base = BeliefBase(initial_beliefs=[("p", 'high')])
-        phi = "q"  # Consistent with B
+        phi = "q"
         base.revision(phi)
         
-        # Check if B * ϕ is consistent (no p ∧ ¬p, q ∧ ¬q, etc.)
         assert not base.resolution(base.belief_base, "False"), \
             "B * ϕ must be consistent when ϕ is consistent"
         
         # Case 2: ϕ contradicts B (tests conflict resolution)
         conflict_base = BeliefBase(initial_beliefs=[("p", 'high'), ("¬p", 'mid')])
-        conflict_phi = "p"  # Directly contradicts "¬p" in B
+        conflict_phi = "p"  
         conflict_base.revision(conflict_phi)
-        
-        # After revision, B * ϕ should be consistent (e.g., removed "¬p")
+      
         assert not conflict_base.resolution(conflict_base.belief_base, "False"), \
             "B * ϕ must resolve conflicts to maintain consistency"
 
@@ -178,16 +175,14 @@ class TestAGMPostulates:
         """
         initial = [
             ("p", 'high'),
-            ("p >> q", 'mid')  # "p >> q" denotes p → q
+            ("p >> q", 'mid')
         ]
         base1 = BeliefBase(initial)
         base2 = BeliefBase(initial)
 
-        # Logically equivalent formulas (ϕ ↔ ψ)
-        phi = "q | r"          # ϕ
-        psi = "r | q"          # ψ (equivalent to ϕ)
+        phi = "q | r" 
+        psi = "r | q" 
 
-        # Check if the two formulas are equivalente
         assert set(phi.split()) == set(psi.split())
 
         base1.revision(phi)

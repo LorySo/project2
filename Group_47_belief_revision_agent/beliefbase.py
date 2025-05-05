@@ -10,7 +10,7 @@ class BeliefBase:
         
         Args:
             initial_beliefs (list): A list of beliefs, where each belief can be:
-                - A string/sympify-compatible formula (e.g., "p | q"), assigned default priority 'low'.
+                - A string/sympify-compatible formula, assigned default priority 'low'.
                 - A tuple (belief, priority), where priority is 'low', 'mid', or 'high'.
         """
         self.belief_base = set()
@@ -21,11 +21,9 @@ class BeliefBase:
         if initial_beliefs:
             for belief in initial_beliefs:
                 if isinstance(belief, tuple):
-                    # Case: (belief, priority) provided
                     belief_formula, priority = belief
                     self.add_with_priority(belief_formula, priority)
                 else:
-                    # Case: Only belief provided (default to 'low' priority)
                     self.add_with_priority(belief, 'low')
 
     def clear(self):
@@ -233,13 +231,8 @@ class BeliefBase:
         """
         self.add_with_priority(phi, priority)
         #print(f"Expanded belief base with: {phi}")
-    #Clem: I don't know if it has to be more complex?
 
 
-    # TODO: Revision: B ∗ ϕ; ϕ is added and other things are removed, 
-    # so that the resulting new belief set B'is consistent.
-    # Levi indentity: B ∗ ϕ := (B ÷ ¬ϕ) + ϕ
-    # def revision
     def revision(self, phi, priority='high'):
         """
         Revises the belief base by phi using Levi Identity:
